@@ -25,11 +25,14 @@ namespace MonoUtilities.Files
         ***/
 
         public string FilePath { get; set; }
+        public bool AddDefaultIfMissing { get; set; }
+
         private string lastSection = "General";
 
-        public IniFile(string aFilePath)
+        public IniFile(string aFilePath, bool addDefaultIfMissing)
         {
             FilePath = aFilePath;
+            AddDefaultIfMissing = addDefaultIfMissing;
         }
 
         public void LoadConfig()
@@ -70,7 +73,7 @@ namespace MonoUtilities.Files
                 }
 
                 MethodInfo method = typeof(IniFile).GetMethod("IniReadGeneric").MakeGenericMethod(new[] { setting.PropertyType });
-                object[] param = { iniPath, section, setting.Name, setting.GetValue(this) };
+                object[] param = { iniPath, section, setting.Name, AddDefaultIfMissing, setting.GetValue(this) };
                 object iniValue = method.Invoke(null, param);
                 setting.SetValue(this, iniValue);
             }
@@ -144,7 +147,7 @@ namespace MonoUtilities.Files
             }
         }
 
-        public static T IniReadGeneric<T>(string path, string sectionName, string settingName, T defaultValue = default(T))
+        public static T IniReadGeneric<T>(string path, string sectionName, string settingName, bool addDefaultIfMissing, T defaultValue = default)
         {
             CultureInfo orgCultureInfo = Thread.CurrentThread.CurrentCulture;
             Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
@@ -153,7 +156,13 @@ namespace MonoUtilities.Files
                 string _s = IniReadString(path, sectionName, settingName, "");
                 T _t;
                 if (_s == "")
+                {
+                    if (addDefaultIfMissing)
+                    {
+                        IniWriteGeneric<T>(path, sectionName, settingName, defaultValue);
+                    }
                     return defaultValue;
+                }
                 try
                 {
                     _t = (T)Convert.ChangeType(_s, typeof(T));
