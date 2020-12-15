@@ -21,6 +21,18 @@ namespace MonoUtilities.Conversions
             string s = c.ToString();
             return int.TryParse(s, out int _);
         }
+
+        public static bool IsGreaterThan<T>(this T value, T other)
+        {
+            return Comparer<T>.Default.Compare(value, other) > 0;
+        }
+
+        public static bool IsLessThan<T>(this T value, T other)
+        {
+            return Comparer<T>.Default.Compare(value, other) < 0;
+        }
+
+
         public static FormUrlEncodedContent KeyPairsToHttpContent(this List<KeyValuePair<string, string>> keyPair)
         {
             return new FormUrlEncodedContent(keyPair);
