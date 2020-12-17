@@ -6,6 +6,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Collections;
+using System.Reflection;
 
 namespace MonoUtilities.Http
 {
@@ -22,7 +24,7 @@ namespace MonoUtilities.Http
         private bool disposedValue;
 
         public JsonSerializerOptions SerializerOptions { get; set; }
-        public HttpClient HttpClient { get; private set; }
+        public HttpClient Client { get; private set; }
         public HttpClientHandler ClientHandler { get; private set; }
 
         public CookieContainer CookieContainer { get; private set; }
@@ -41,23 +43,23 @@ namespace MonoUtilities.Http
         public MonoHttpClient(TimeSpan requestTimeout, bool allowAutoRedirect = true)
         {
             CookieContainer = new CookieContainer();
-            ClientHandler = new HttpClientHandler() { AllowAutoRedirect = allowAutoRedirect, CookieContainer = CookieContainer };
-            HttpClient = new HttpClient(ClientHandler) { Timeout = requestTimeout };
-            HttpClient.Timeout = requestTimeout;
+            ClientHandler = new HttpClientHandler() { AllowAutoRedirect = allowAutoRedirect, CookieContainer = CookieContainer, UseCookies = true};
+            Client = new HttpClient(ClientHandler) { Timeout = requestTimeout };
+            Client.Timeout = requestTimeout;
             SetupDefaults();
         }
         public MonoHttpClient(double requestTimeoutInMs, bool allowAutoRedirect = true)
         {
             CookieContainer = new CookieContainer();
-            ClientHandler = new HttpClientHandler() { AllowAutoRedirect = allowAutoRedirect, CookieContainer = CookieContainer };
-            HttpClient = new HttpClient(ClientHandler) { Timeout = TimeSpan.FromMilliseconds(requestTimeoutInMs) };
+            ClientHandler = new HttpClientHandler() { AllowAutoRedirect = allowAutoRedirect, CookieContainer = CookieContainer, UseCookies = true};
+            Client = new HttpClient(ClientHandler) { Timeout = TimeSpan.FromMilliseconds(requestTimeoutInMs) };
             SetupDefaults();
             
         }
 
         private void SetupDefaults()
         {
-            HttpClient.DefaultRequestHeaders.Add("User-Agent", "MonoHTTP Client C# .NET Standard");
+            Client.DefaultRequestHeaders.Add("User-Agent", "MonoHTTP Client C# .NET Standard");
             postParams = new List<KeyValuePair<string, string>>();
             getParams = new List<KeyValuePair<string, string>>();
             clearAuth = false;
@@ -65,7 +67,7 @@ namespace MonoUtilities.Http
             {
                 PropertyNameCaseInsensitive = false,
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                NumberHandling = JsonNumberHandling.AllowReadingFromString
+                NumberHandling = JsonNumberHandling.AllowReadingFromString                
             };
         }
 
@@ -90,7 +92,7 @@ namespace MonoUtilities.Http
         public void AddBasicAuth(string username, string password, bool clearAfterCall)
         {
             byte[] byteArray = Encoding.ASCII.GetBytes($"{username}:{password}");
-            HttpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
+            Client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", Convert.ToBase64String(byteArray));
         }
 
         public void AddCookie(string url, string key, object value)
@@ -102,7 +104,7 @@ namespace MonoUtilities.Http
         public async Task<HttpResponseMessage> PostAsync(string url, bool clearParamsAfterResponse = true)
         {
             FormUrlEncodedContent content = new FormUrlEncodedContent(postParams);
-            HttpResponseMessage result = await HttpClient.PostAsync(url, content);
+            HttpResponseMessage result = await Client.PostAsync(url, content);
             if (clearParamsAfterResponse)
             {
                 postParams.Clear();
@@ -110,7 +112,7 @@ namespace MonoUtilities.Http
             if (clearAuth)
             {
                 clearAuth = false;
-                HttpClient.DefaultRequestHeaders.Authorization = null;
+                Client.DefaultRequestHeaders.Authorization = null;
             }
             return result;
         }
@@ -118,9 +120,17 @@ namespace MonoUtilities.Http
         public async Task<JsonResult<T>> PostAsync<T>(string url, bool clearParamsAfterResponse = true)
         {
             FormUrlEncodedContent content = new FormUrlEncodedContent(postParams);
-            HttpResponseMessage result = await HttpClient.PostAsync(url, content);
+            HttpResponseMessage result = await Client.PostAsync(url, content);
             string json = await result.Content.ReadAsStringAsync();
-            T obj = JsonSerializer.Deserialize<T>(json, SerializerOptions);
+            T obj;
+            try
+            {
+                obj = JsonSerializer.Deserialize<T>(json, SerializerOptions);
+            }
+            catch
+            {
+                obj = default(T);
+            }
             if (clearParamsAfterResponse)
             {
                 postParams.Clear();
@@ -128,7 +138,7 @@ namespace MonoUtilities.Http
             if (clearAuth)
             {
                 clearAuth = false;
-                HttpClient.DefaultRequestHeaders.Authorization = null;
+                Client.DefaultRequestHeaders.Authorization = null;
             }
             return new JsonResult<T>(result, obj);
         }
@@ -143,7 +153,7 @@ namespace MonoUtilities.Http
                 if (i + 1 < getParams.Count)
                     url += "&";
             }
-            HttpResponseMessage result = await HttpClient.GetAsync(url);
+            HttpResponseMessage result = await Client.GetAsync(url);
             if (clearParamsAfterResponse)
             {
                 getParams.Clear();
@@ -151,7 +161,7 @@ namespace MonoUtilities.Http
             if (clearAuth)
             {
                 clearAuth = false;
-                HttpClient.DefaultRequestHeaders.Authorization = null;
+                Client.DefaultRequestHeaders.Authorization = null;
             }
             return result;
         }
@@ -166,9 +176,17 @@ namespace MonoUtilities.Http
                 if (i + 1 < getParams.Count)
                     url += "&";
             }
-            HttpResponseMessage result = await HttpClient.GetAsync(url);
+            HttpResponseMessage result = await Client.GetAsync(url);
             string json = await result.Content.ReadAsStringAsync();
-            T obj = JsonSerializer.Deserialize<T>(json, SerializerOptions);
+            T obj;
+            try
+            {
+                obj = JsonSerializer.Deserialize<T>(json, SerializerOptions);
+            }
+            catch
+            {
+                obj = default(T);
+            }
             if (clearParamsAfterResponse)
             {
                 getParams.Clear();
@@ -176,7 +194,7 @@ namespace MonoUtilities.Http
             if (clearAuth)
             {
                 clearAuth = false;
-                HttpClient.DefaultRequestHeaders.Authorization = null;
+                Client.DefaultRequestHeaders.Authorization = null;
             }
             
             return new JsonResult<T>(result, obj);
@@ -189,7 +207,7 @@ namespace MonoUtilities.Http
                 if (disposing)
                 {
                     ClientHandler.Dispose();
-                    HttpClient.Dispose();
+                    Client.Dispose();
                 }
                 disposedValue = true;
             }
@@ -199,6 +217,6 @@ namespace MonoUtilities.Http
         {
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
-        }
+        }        
     }
 }
