@@ -117,6 +117,42 @@ namespace MonoUtilities.Http
             return result;
         }
 
+        public async Task<HttpResponseMessage> PostAsync(string url, object body)
+        {
+            string jsonBody = JsonSerializer.Serialize(body, SerializerOptions);
+            StringContent content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+            HttpResponseMessage result = await Client.PostAsync(url, content);
+            if (clearAuth)
+            {
+                clearAuth = false;
+                Client.DefaultRequestHeaders.Authorization = null;
+            }
+            return result;
+        }
+
+        public async Task<JsonResult<T>> PostAsync<T>(string url, object body)
+        {
+            string jsonBody = JsonSerializer.Serialize(body, SerializerOptions);
+            StringContent content = new StringContent(jsonBody, Encoding.UTF8, "application/json");  
+            HttpResponseMessage result = await Client.PostAsync(url, content);
+            string json = await result.Content.ReadAsStringAsync();
+            T obj;
+            try
+            {
+                obj = JsonSerializer.Deserialize<T>(json, SerializerOptions);
+            }
+            catch
+            {
+                obj = default;
+            }
+            if (clearAuth)
+            {
+                clearAuth = false;
+                Client.DefaultRequestHeaders.Authorization = null;
+            }
+            return new JsonResult<T>(result, obj);
+        }
+
         public async Task<JsonResult<T>> PostAsync<T>(string url, bool clearParamsAfterResponse = true)
         {
             FormUrlEncodedContent content = new FormUrlEncodedContent(postParams);
@@ -129,7 +165,7 @@ namespace MonoUtilities.Http
             }
             catch
             {
-                obj = default(T);
+                obj = default;
             }
             if (clearParamsAfterResponse)
             {
@@ -185,7 +221,7 @@ namespace MonoUtilities.Http
             }
             catch
             {
-                obj = default(T);
+                obj = default;
             }
             if (clearParamsAfterResponse)
             {
