@@ -236,6 +236,29 @@ namespace MonoUtilities.Http
             return new JsonResult<T>(result, obj);
         }
 
+        public async Task<HttpResponseMessage> DeleteAsync(string url, bool clearParamsAfterResponse = true)
+        {
+            for (int i = 0; i < getParams.Count; i++)
+            {
+                if (i == 0)
+                    url += "?";
+                url += getParams[i].Key + "=" + getParams[i].Value;
+                if (i + 1 < getParams.Count)
+                    url += "&";
+            }
+            HttpResponseMessage result = await Client.DeleteAsync(url);
+            if (clearParamsAfterResponse)
+            {
+                getParams.Clear();
+            }
+            if (clearAuth)
+            {
+                clearAuth = false;
+                Client.DefaultRequestHeaders.Authorization = null;
+            }
+            return result;
+        }
+
         protected virtual void Dispose(bool disposing)
         {
             if (!disposedValue)

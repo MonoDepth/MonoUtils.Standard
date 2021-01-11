@@ -37,7 +37,7 @@ namespace MonoUtilities.Conversions
         {
             return new FormUrlEncodedContent(keyPair);
         }
-        public static string getSubstr(this string str, string find)
+        public static string GetSubstr(this string str, string find)
         {
             return str.Substring(str.IndexOf(find));
         }
