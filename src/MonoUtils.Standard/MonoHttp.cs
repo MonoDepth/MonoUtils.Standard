@@ -100,7 +100,7 @@ namespace MonoUtilities.Http
             Cookie c = new Cookie(key, value.ToString());
             CookieContainer.Add(new Uri(url), c);
         }
-
+        #region Async_Calls
         public async Task<HttpResponseMessage> PostAsync(string url, bool clearParamsAfterResponse = true)
         {
             FormUrlEncodedContent content = new FormUrlEncodedContent(postParams);
@@ -258,6 +258,167 @@ namespace MonoUtilities.Http
             }
             return result;
         }
+        #endregion
+
+        #region Sync_Calls
+        public HttpResponseMessage Post(string url, bool clearParamsAfterResponse = true)
+        {
+            FormUrlEncodedContent content = new FormUrlEncodedContent(postParams);
+            HttpResponseMessage result = Client.PostAsync(url, content).Result;
+            if (clearParamsAfterResponse)
+            {
+                postParams.Clear();
+            }
+            if (clearAuth)
+            {
+                clearAuth = false;
+                Client.DefaultRequestHeaders.Authorization = null;
+            }
+            return result;
+        }
+
+        public HttpResponseMessage Post(string url, object body)
+        {
+            string jsonBody = JsonSerializer.Serialize(body, SerializerOptions);
+            StringContent content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+            HttpResponseMessage result = Client.PostAsync(url, content).Result;
+            if (clearAuth)
+            {
+                clearAuth = false;
+                Client.DefaultRequestHeaders.Authorization = null;
+            }
+            return result;
+        }
+
+        public JsonResult<T> Post<T>(string url, object body)
+        {
+            string jsonBody = JsonSerializer.Serialize(body, SerializerOptions);
+            StringContent content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+            HttpResponseMessage result = Client.PostAsync(url, content).Result;
+            string json = result.Content.ReadAsStringAsync().Result;
+            T obj;
+            try
+            {
+                obj = JsonSerializer.Deserialize<T>(json, SerializerOptions);
+            }
+            catch
+            {
+                obj = default;
+            }
+            if (clearAuth)
+            {
+                clearAuth = false;
+                Client.DefaultRequestHeaders.Authorization = null;
+            }
+            return new JsonResult<T>(result, obj);
+        }
+
+        public JsonResult<T> Post<T>(string url, bool clearParamsAfterResponse = true)
+        {
+            FormUrlEncodedContent content = new FormUrlEncodedContent(postParams);
+            HttpResponseMessage result = Client.PostAsync(url, content).Result;
+            string json = result.Content.ReadAsStringAsync().Result;
+            T obj;
+            try
+            {
+                obj = JsonSerializer.Deserialize<T>(json, SerializerOptions);
+            }
+            catch
+            {
+                obj = default;
+            }
+            if (clearParamsAfterResponse)
+            {
+                postParams.Clear();
+            }
+            if (clearAuth)
+            {
+                clearAuth = false;
+                Client.DefaultRequestHeaders.Authorization = null;
+            }
+            return new JsonResult<T>(result, obj);
+        }
+
+        public HttpResponseMessage Get(string url, bool clearParamsAfterResponse = true)
+        {
+            for (int i = 0; i < getParams.Count; i++)
+            {
+                if (i == 0)
+                    url += "?";
+                url += getParams[i].Key + "=" + getParams[i].Value;
+                if (i + 1 < getParams.Count)
+                    url += "&";
+            }
+            HttpResponseMessage result = Client.GetAsync(url).Result;
+            if (clearParamsAfterResponse)
+            {
+                getParams.Clear();
+            }
+            if (clearAuth)
+            {
+                clearAuth = false;
+                Client.DefaultRequestHeaders.Authorization = null;
+            }
+            return result;
+        }
+
+        public JsonResult<T> Get<T>(string url, bool clearParamsAfterResponse = true)
+        {
+            for (int i = 0; i < getParams.Count; i++)
+            {
+                if (i == 0)
+                    url += "?";
+                url += getParams[i].Key + "=" + getParams[i].Value;
+                if (i + 1 < getParams.Count)
+                    url += "&";
+            }
+            HttpResponseMessage result = Client.GetAsync(url).Result;
+            string json = result.Content.ReadAsStringAsync().Result;
+            T obj;
+            try
+            {
+                obj = JsonSerializer.Deserialize<T>(json, SerializerOptions);
+            }
+            catch
+            {
+                obj = default;
+            }
+            if (clearParamsAfterResponse)
+            {
+                getParams.Clear();
+            }
+            if (clearAuth)
+            {
+                clearAuth = false;
+                Client.DefaultRequestHeaders.Authorization = null;
+            }
+
+            return new JsonResult<T>(result, obj);
+        }
+
+        public HttpResponseMessage Delete(string url, bool clearParamsAfterResponse = true)
+        {
+            for (int i = 0; i < getParams.Count; i++)
+            {
+                if (i == 0)
+                    url += "?";
+                url += getParams[i].Key + "=" + getParams[i].Value;
+                if (i + 1 < getParams.Count)
+                    url += "&";
+            }
+            HttpResponseMessage result = Client.DeleteAsync(url).Result;
+            if (clearParamsAfterResponse)
+            {
+                getParams.Clear();
+            }
+            if (clearAuth)
+            {
+                clearAuth = false;
+                Client.DefaultRequestHeaders.Authorization = null;
+            }
+            return result;
+        }
+        #endregion
 
         protected virtual void Dispose(bool disposing)
         {
