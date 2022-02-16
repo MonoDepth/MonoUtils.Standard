@@ -18,7 +18,7 @@ namespace MonoUtilities.Validation
         /// </summary>
         /// <param name="version">The version to check</param>
         /// <param name="compareAgainst">The version to check against</param>
-        /// <returns>true if the version is newer</returns>
+        /// <returns>true if the version is newer. A non suffixed version will always be considered newer than a suffixed one with the same version number</returns>
         /// <exception cref="VersionFormatException">The format of version or compareAgainst was of the wrong format</exception>
         public static bool IsVersionNewer(string version, string compareAgainst)
         {
@@ -34,54 +34,29 @@ namespace MonoUtilities.Validation
             {
                 return false;
             }
+            
+           return IsVersionNewer(version.ToVersion(), compareAgainst.ToVersion());
+        }
 
-            Regex regex = new Regex("^[0-9]+.[0-9]+.[0-9]+(-[a-z-A-Z-0-9]+)*$");
+        /// <summary>
+        /// Checks if version is newer than compareAgainst
+        /// </summary>
+        /// <param name="version">The version to check</param>
+        /// <param name="compareAgainst">The version to check against</param>
+        /// <returns>true if the version is newer. A non suffixed version will always be considered newer than a suffixed one with the same version number</returns>
+        public static bool IsVersionNewer(VersionInfo version, VersionInfo compareAgainst)
+        {
+            return version > compareAgainst;
+        }
 
-            if (!regex.IsMatch(version))
-            {
-                throw new VersionFormatException($"version {version} is not a valid version number");
-            }
-
-            if (!regex.IsMatch(compareAgainst))
-            {
-                throw new VersionFormatException($"version {compareAgainst} is not a valid version number");
-            }
-
-            string[] versionArray = version.Split('.', '-');
-            string[] compareArray = compareAgainst.Split('.', '-');
-
-            if (versionArray.Length < 3 || versionArray.Length > 4)
-            {
-                throw new VersionFormatException($"Got array size of {versionArray.Length} for {version} (should be 3 or 4)");
-            }
-
-            if (compareArray.Length < 3 || compareArray.Length > 4)
-            {
-                throw new VersionFormatException($"Got array size of {versionArray.Length} for {version} (should be 3 or 4)");
-            }
-
-            if (string.Compare(versionArray[0], compareArray[0], StringComparison.InvariantCultureIgnoreCase) == 1)
-            {
-                return true;
-            }
-            else if (string.Compare(versionArray[1], compareArray[1], StringComparison.InvariantCultureIgnoreCase) == 1)
-            {
-                return true;
-            }
-            else if (string.Compare(versionArray[2], compareArray[2], StringComparison.InvariantCultureIgnoreCase) == 1)
-            {
-                return true;
-            }
-            else if (versionArray.Length == 3 && compareArray.Length == 4)
-            {
-                return true;
-            }
-            else if ((versionArray.Length == 4 && compareArray.Length == 4) && string.Compare(versionArray[3].ToUpper(), compareArray[3].ToUpper(), StringComparison.InvariantCultureIgnoreCase) == 1)
-            {
-                return true;
-            }
-
-            return false;
+        /// <summary>
+        /// Creates a new version object. Identical to calling new VersionInfo(version)
+        /// </summary>
+        /// <param name="version">version string</param>
+        /// <returns>VersionInfo object</returns>
+        public static VersionInfo MakeVersionInfo(string version)
+        {
+            return new VersionInfo(version);
         }
 
         /// <summary>
