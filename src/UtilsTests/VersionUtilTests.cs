@@ -83,5 +83,11 @@ namespace UtilsTests
         {
             Assert.Equal("", VersionUtil.ExtractSuffix("2022.01.24"));
         }
+
+        [Fact]
+        public void LeadingZeroes_ShouldBeIgnored()
+        {
+            Assert.True(VersionUtil.IsVersionNewer("2022.02.24", "2022.01.24"));
+        }
     }
 }

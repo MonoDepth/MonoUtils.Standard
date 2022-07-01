@@ -67,7 +67,8 @@ namespace MonoUtilities.Http
             {
                 PropertyNameCaseInsensitive = false,
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                NumberHandling = JsonNumberHandling.AllowReadingFromString                
+                NumberHandling = JsonNumberHandling.AllowReadingFromString,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
             };
         }
 
@@ -100,6 +101,7 @@ namespace MonoUtilities.Http
             Cookie c = new Cookie(key, value.ToString());
             CookieContainer.Add(new Uri(url), c);
         }
+
         #region Async_Calls
         public async Task<HttpResponseMessage> PostAsync(string url, bool clearParamsAfterResponse = true)
         {
@@ -117,9 +119,17 @@ namespace MonoUtilities.Http
             return result;
         }
 
-        public async Task<HttpResponseMessage> PostAsync(string url, object body)
+        public async Task<HttpResponseMessage> PostAsync(string url, object body, JsonSerializerOptions serializerOptions = null)
         {
-            string jsonBody = JsonSerializer.Serialize(body, SerializerOptions);
+            string jsonBody;
+            if (typeof(object).IsPrimitive)
+            {
+                jsonBody = body.ToString();
+            }
+            else
+            {
+               jsonBody = JsonSerializer.Serialize(body, serializerOptions ?? SerializerOptions);
+            }
             StringContent content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
             HttpResponseMessage result = await Client.PostAsync(url, content);
             if (clearAuth)
@@ -130,16 +140,25 @@ namespace MonoUtilities.Http
             return result;
         }
 
-        public async Task<JsonResult<T>> PostAsync<T>(string url, object body)
+        public async Task<JsonResult<T>> PostAsync<T>(string url, object body, JsonSerializerOptions serializerOptions = null)
         {
-            string jsonBody = JsonSerializer.Serialize(body, SerializerOptions);
+            string jsonBody;
+            if (typeof(object).IsPrimitive)
+            {
+                jsonBody = body.ToString();
+            }
+            else
+            {
+                jsonBody = JsonSerializer.Serialize(body, serializerOptions ?? SerializerOptions);
+            }
+
             StringContent content = new StringContent(jsonBody, Encoding.UTF8, "application/json");  
             HttpResponseMessage result = await Client.PostAsync(url, content);
             string json = await result.Content.ReadAsStringAsync();
             T obj;
             try
             {
-                obj = JsonSerializer.Deserialize<T>(json, SerializerOptions);
+                obj = JsonSerializer.Deserialize<T>(json, serializerOptions ?? SerializerOptions);
             }
             catch
             {
@@ -153,7 +172,7 @@ namespace MonoUtilities.Http
             return new JsonResult<T>(result, obj);
         }
 
-        public async Task<JsonResult<T>> PostAsync<T>(string url, bool clearParamsAfterResponse = true)
+        public async Task<JsonResult<T>> PostAsync<T>(string url, bool clearParamsAfterResponse = true, JsonSerializerOptions serializerOptions = null)
         {
             FormUrlEncodedContent content = new FormUrlEncodedContent(postParams);
             HttpResponseMessage result = await Client.PostAsync(url, content);
@@ -161,7 +180,7 @@ namespace MonoUtilities.Http
             T obj;
             try
             {
-                obj = JsonSerializer.Deserialize<T>(json, SerializerOptions);
+                obj = JsonSerializer.Deserialize<T>(json, serializerOptions ?? SerializerOptions);
             }
             catch
             {
@@ -202,7 +221,7 @@ namespace MonoUtilities.Http
             return result;
         }
 
-        public async Task<JsonResult<T>> GetAsync<T>(string url, bool clearParamsAfterResponse = true)
+        public async Task<JsonResult<T>> GetAsync<T>(string url, bool clearParamsAfterResponse = true, JsonSerializerOptions serializerOptions = null)
         {
             for (int i = 0; i < getParams.Count; i++)
             {
@@ -217,7 +236,7 @@ namespace MonoUtilities.Http
             T obj;
             try
             {
-                obj = JsonSerializer.Deserialize<T>(json, SerializerOptions);
+                obj = JsonSerializer.Deserialize<T>(json, serializerOptions ?? SerializerOptions);
             }
             catch
             {
@@ -258,6 +277,34 @@ namespace MonoUtilities.Http
             }
             return result;
         }
+
+        public async Task<HttpResponseMessage> DeleteAsync(string url, object body, JsonSerializerOptions serializerOptions = null)
+        {
+            string jsonBody;
+            if (typeof(object).IsPrimitive)
+            {
+                jsonBody = body.ToString();
+            }
+            else
+            {
+                jsonBody = JsonSerializer.Serialize(body, serializerOptions ?? SerializerOptions);
+            }
+
+            StringContent content = new StringContent(jsonBody, Encoding.UTF8, "application/json");            
+            HttpResponseMessage result = await Client.SendAsync(new HttpRequestMessage
+            {
+                Method = HttpMethod.Delete,
+                RequestUri = new Uri(url),
+                Content = content
+            });
+
+            if (clearAuth)
+            {
+                clearAuth = false;
+                Client.DefaultRequestHeaders.Authorization = null;
+            }
+            return result;
+        }
         #endregion
 
         #region Sync_Calls
@@ -277,9 +324,18 @@ namespace MonoUtilities.Http
             return result;
         }
 
-        public HttpResponseMessage Post(string url, object body)
+        public HttpResponseMessage Post(string url, object body, JsonSerializerOptions serializerOptions = null)
         {
-            string jsonBody = JsonSerializer.Serialize(body, SerializerOptions);
+            string jsonBody;
+            if (typeof(object).IsPrimitive)
+            {
+                jsonBody = body.ToString();
+            }
+            else
+            {
+                jsonBody = JsonSerializer.Serialize(body, serializerOptions ?? SerializerOptions);
+            }
+
             StringContent content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
             HttpResponseMessage result = Client.PostAsync(url, content).Result;
             if (clearAuth)
@@ -290,16 +346,25 @@ namespace MonoUtilities.Http
             return result;
         }
 
-        public JsonResult<T> Post<T>(string url, object body)
+        public JsonResult<T> Post<T>(string url, object body, JsonSerializerOptions serializerOptions = null)
         {
-            string jsonBody = JsonSerializer.Serialize(body, SerializerOptions);
+            string jsonBody;
+            if (typeof(object).IsPrimitive)
+            {
+                jsonBody = body.ToString();
+            }
+            else
+            {
+                jsonBody = JsonSerializer.Serialize(body, serializerOptions ?? SerializerOptions);
+            }
+
             StringContent content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
             HttpResponseMessage result = Client.PostAsync(url, content).Result;
             string json = result.Content.ReadAsStringAsync().Result;
             T obj;
             try
             {
-                obj = JsonSerializer.Deserialize<T>(json, SerializerOptions);
+                obj = JsonSerializer.Deserialize<T>(json, serializerOptions ?? SerializerOptions);
             }
             catch
             {
@@ -313,7 +378,7 @@ namespace MonoUtilities.Http
             return new JsonResult<T>(result, obj);
         }
 
-        public JsonResult<T> Post<T>(string url, bool clearParamsAfterResponse = true)
+        public JsonResult<T> Post<T>(string url, bool clearParamsAfterResponse = true, JsonSerializerOptions serializerOptions = null)
         {
             FormUrlEncodedContent content = new FormUrlEncodedContent(postParams);
             HttpResponseMessage result = Client.PostAsync(url, content).Result;
@@ -321,7 +386,7 @@ namespace MonoUtilities.Http
             T obj;
             try
             {
-                obj = JsonSerializer.Deserialize<T>(json, SerializerOptions);
+                obj = JsonSerializer.Deserialize<T>(json, serializerOptions ?? SerializerOptions);
             }
             catch
             {
@@ -362,7 +427,7 @@ namespace MonoUtilities.Http
             return result;
         }
 
-        public JsonResult<T> Get<T>(string url, bool clearParamsAfterResponse = true)
+        public JsonResult<T> Get<T>(string url, bool clearParamsAfterResponse = true, JsonSerializerOptions serializerOptions = null)
         {
             for (int i = 0; i < getParams.Count; i++)
             {
@@ -377,7 +442,7 @@ namespace MonoUtilities.Http
             T obj;
             try
             {
-                obj = JsonSerializer.Deserialize<T>(json, SerializerOptions);
+                obj = JsonSerializer.Deserialize<T>(json, serializerOptions ?? SerializerOptions);
             }
             catch
             {
@@ -418,6 +483,35 @@ namespace MonoUtilities.Http
             }
             return result;
         }
+
+        public HttpResponseMessage Delete(string url, object body, JsonSerializerOptions serializerOptions = null)
+        {
+            string jsonBody;
+            if (typeof(object).IsPrimitive)
+            {
+                jsonBody = body.ToString();
+            }
+            else
+            {
+                jsonBody = JsonSerializer.Serialize(body, serializerOptions ?? SerializerOptions);
+            }
+
+            StringContent content = new StringContent(jsonBody, Encoding.UTF8, "application/json");
+            HttpResponseMessage result = Client.SendAsync(new HttpRequestMessage
+            {
+                Method = HttpMethod.Delete,
+                RequestUri = new Uri(url),
+                Content = content
+            }).Result;
+
+            if (clearAuth)
+            {
+                clearAuth = false;
+                Client.DefaultRequestHeaders.Authorization = null;
+            }
+            return result;
+        }
+
         #endregion
 
         protected virtual void Dispose(bool disposing)

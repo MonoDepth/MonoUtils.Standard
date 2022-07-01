@@ -36,14 +36,14 @@ namespace MonoUtilities.Validation
 
         public static bool operator >(VersionInfo a, VersionInfo b)
         {
-            int majorCompare = string.Compare(a.Major, b.Major, StringComparison.InvariantCultureIgnoreCase);
+            int majorCompare = string.Compare(a.Major.TrimStart('0'), b.Major.TrimStart('0'), StringComparison.InvariantCultureIgnoreCase);
 
             if (majorCompare == 1)
             {
                 return true;
             }
 
-            int minorCompare = string.Compare(a.Minor, b.Minor, StringComparison.InvariantCultureIgnoreCase);
+            int minorCompare = string.Compare(a.Minor.TrimStart('0'), b.Minor.TrimStart('0'), StringComparison.InvariantCultureIgnoreCase);
 
 
             if (majorCompare == 0 && minorCompare == 1)
@@ -51,7 +51,7 @@ namespace MonoUtilities.Validation
                 return true;
             }
 
-            int patchCompare = string.Compare(a.Patch, b.Patch, StringComparison.InvariantCultureIgnoreCase);
+            int patchCompare = string.Compare(a.Patch.TrimStart('0'), b.Patch.TrimStart('0'), StringComparison.InvariantCultureIgnoreCase);
 
             if (majorCompare == 0 && minorCompare == 0 && patchCompare == 1)
             {
